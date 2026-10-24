@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>9:16 Portrait Video Generator Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="icon">🎬</span>
+        <h1>9:16 Portrait Video Studio</h1>
+      </div>
+      <p class="subtitle">Craft aesthetic 1080x1920 short-form videos with gradients, typography, animated GIFs & audio</p>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="studio-grid">
+      <!-- Left Panel: Configuration Form -->
+      <section class="config-panel">
+        <div class="panel-header">
+          <h2>Video Elements</h2>
+          <button id="load-demo-btn" type="button" class="btn-secondary btn-sm">✨ Load Demo Assets</button>
+        </div>
+
+        <form id="generator-form">
+          <!-- Text Box -->
+          <div class="form-group">
+            <label for="text-input">Main Message / Quote <span class="req">*</span></label>
+            <textarea id="text-input" name="text" rows="3" placeholder="Enter quote, announcement, or motivational text..."></textarea>
+          </div>
+
+          <!-- Date Badge -->
+          <div class="form-group">
+            <label for="date-input">Header Date Badge <span class="hint">(Leave blank for today's date)</span></label>
+            <input type="text" id="date-input" name="date_text" placeholder="e.g. SATURDAY, OCTOBER 24, 2026">
+          </div>
+
+          <!-- File Uploads -->
+          <div class="file-grid">
+            <!-- Image File -->
+            <label for="image-file" class="file-card" id="image-card">
+              <span class="file-title">🖼️ Picture</span>
+              <span class="file-action">Click or drag image</span>
+              <input type="file" id="image-file" name="image" accept="image/png, image/jpeg, image/webp">
+              <div id="image-preview" class="file-status">No picture chosen</div>
+            </label>
+
+            <!-- GIF 1 File -->
+            <label for="gif-file" class="file-card" id="gif-card">
+              <span class="file-title">💫 GIF Sticker 1</span>
+              <span class="file-action">Click or drag GIF</span>
+              <input type="file" id="gif-file" name="gif" accept="image/gif">
+              <div id="gif-preview" class="file-status">No GIF chosen</div>
+            </label>
+
+            <!-- GIF 2 File -->
+            <label for="gif2-file" class="file-card" id="gif2-card">
+              <span class="file-title">💫 GIF Sticker 2</span>
+              <span class="file-action">Click or drag GIF</span>
+              <input type="file" id="gif2-file" name="gif2" accept="image/gif">
+              <div id="gif2-preview" class="file-status">Optional 2nd GIF</div>
+            </label>
+
+            <!-- Music File -->
+            <label for="music-file" class="file-card" id="music-card">
+              <span class="file-title">🎵 Background Music</span>
+              <span class="file-action">Click or drag audio</span>
+              <input type="file" id="music-file" name="music" accept="audio/*">
+              <div id="music-preview" class="file-status">No music chosen</div>
+            </label>
+          </div>
+
+          <!-- Styling Controls -->
+          <div class="controls-grid">
+            <div class="form-group">
+              <label for="gradient-select">Gradient Palette</label>
+              <select id="gradient-select" name="gradient">
+                <option value="sunset">🌅 Sunset (Pink / Red / Peach Gold)</option>
+                <option value="cyberpunk">⚡ Cyberpunk (Navy / Violet / Neon Cyan)</option>
+                <option value="aurora">🌌 Aurora (Dark Arctic / Teal / Emerald)</option>
+                <option value="royal_purple">👑 Royal Purple (Obsidian / Velvet / Amethyst)</option>
+                <option value="cotton_candy">🍬 Cotton Candy (Blush / Lilac / Sky Blue)</option>
+                <option value="midnight">🌑 Midnight (Dark Slate / Charcoal)</option>
+                <option value="emerald">🌲 Emerald (Forest / Mint / Sage)</option>
+                <option value="dark_gold">✨ Dark Gold (Onyx / Bronze / Gold)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="bg-mode-select">Background Motion</label>
+              <select id="bg-mode-select" name="bg_mode">
+                <option value="static">Static (Crisp High-DPI Gradient)</option>
+                <option value="animated">Animated (Living Ambient Color Motion)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="template-select">Layout Template</label>
+              <select id="template-select" name="template">
+                <option value="modern_card">Modern Card (Centered image & card)</option>
+                <option value="showcase">Showcase (Large center photo + badge)</option>
+                <option value="poster">Poster (Editorial layout)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="duration-input">Duration (Seconds)</label>
+              <input type="number" id="duration-input" name="duration" value="20" min="5" max="60" step="1">
+            </div>
+          </div>
+
+          <div id="error-banner" class="error-banner hidden"></div>
+
+          <button id="generate-btn" type="submit" class="btn-primary">
+            🚀 Generate 9:16 Video
+          </button>
+        </form>
+
+        <div id="progress-container" class="hidden">
+          <div class="spinner"></div>
+          <p id="progress-msg">Compositing elements and rendering video via FFmpeg...</p>
+        </div>
+      </section>
+
+      <!-- Right Panel: Live Phone Mockup Preview -->
+      <section class="preview-panel">
+        <div class="phone-mockup">
+          <div class="phone-speaker"></div>
+          <div class="phone-screen" id="player-container">
+            <div id="placeholder-screen" class="placeholder">
+              <div class="placeholder-icon">📱</div>
+              <p>Your 9:16 video will preview here</p>
+              <span class="spec-tag">1080 × 1920 • 20s</span>
+            </div>
+            <video id="video-player" class="hidden" controls loop playsinline></video>
+          </div>
+        </div>
+
+        <div id="action-bar" class="hidden">
+          <a id="download-btn" class="btn-download" href="#" download="my_portrait_video.mp4">
+            ⬇️ Download 9:16 Video (MP4)
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
