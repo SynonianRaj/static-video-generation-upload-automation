@@ -28,6 +28,15 @@ def test_get_credentials(monkeypatch):
     assert account_id == "123456789"
 
 
+def test_get_credentials_sanitizes_unicode_and_quotes(monkeypatch):
+    monkeypatch.setenv("INSTAGRAM_ACCESS_TOKEN", "  \"IGAA123\ufffa\ufffb456\"  ")
+    monkeypatch.setenv("INSTAGRAM_ACCOUNT_ID", " \"28019782677695839\" ")
+
+    token, account_id = get_credentials()
+    assert token == "IGAA123456"
+    assert account_id == "28019782677695839"
+
+
 def test_get_credentials_missing_raises(monkeypatch):
     monkeypatch.delenv("INSTAGRAM_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("INSTAGRAM_ACCOUNT_ID", raising=False)

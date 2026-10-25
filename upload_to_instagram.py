@@ -70,9 +70,9 @@ def get_credentials(
     token = cli_token or os.environ.get("INSTAGRAM_ACCESS_TOKEN", "")
     account_id = cli_account_id or os.environ.get("INSTAGRAM_ACCOUNT_ID", "")
 
-    # Clean whitespace, newlines, and any surrounding quotes
-    token = token.strip().strip("\"'").strip()
-    account_id = account_id.strip().strip("\"'").strip()
+    # Clean whitespace, newlines, quotes, and invisible unicode artifacts
+    token = re.sub(r"[^A-Za-z0-9_.-]", "", token)
+    account_id = re.sub(r"[^0-9]", "", account_id)
 
     if not token:
         raise ValueError("Missing Instagram Access Token. Set INSTAGRAM_ACCESS_TOKEN or pass --token.")
