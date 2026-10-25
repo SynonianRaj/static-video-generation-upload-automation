@@ -24,6 +24,9 @@ dependencies = [
 video-gen = "cli:main"
 video-gen-server = "server:main"
 
+[tool.setuptools.packages.find]
+include = ["video_generator*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
