@@ -1,0 +1,55 @@
+name: Daily Instagram Reel Automation
+
+on:
+  schedule:
+    # Runs daily at 13:00 UTC (18:30 IST / 6:30 PM IST)
+    - cron: '0 13 * * *'
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies (FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Restore pending videos from previous failed runs
+        uses: actions/cache/restore@v4
+        with:
+          path: video_*.mp4
+          key: pending-videos-${{ github.run_id }}
+          restore-keys: |
+            pending-videos-
+
+      - name: Generate video with date in name
+        run: |
+          python cli.py
+
+      - name: Upload to Instagram and clean up
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+        run: |
+          python upload_to_instagram.py
+
+      - name: Cache pending videos if upload failed
+        if: failure()
+        uses: actions/cache/save@v4
+        with:
+          path: video_*.mp4
+          key: pending-videos-${{ github.run_id }}

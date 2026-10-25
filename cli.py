@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Production-grade command-line interface for the 9:16 Portrait Video Generator."""
 import argparse
+from datetime import datetime
 import logging
 import random
 import signal
@@ -129,8 +130,14 @@ def is_explicit_none(val: Optional[str]) -> bool:
     return val is not None and val.strip().lower() in ("none", "null", "false", "0", "")
 
 
+def get_default_output_filename() -> str:
+    """Returns default output filename containing current date: video_YYYY-MM-DD.mp4."""
+    return f"video_{datetime.now().strftime('%Y-%m-%d')}.mp4"
+
+
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Configures and parses CLI command line arguments."""
+    default_output = get_default_output_filename()
     parser = argparse.ArgumentParser(
         description="Production CLI for 9:16 Portrait Video Generator (1080x1920) with gradient backgrounds, pictures, emoji typography, dual live GIFs, and music."
     )
@@ -210,8 +217,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Enable frosted card background behind text (default: False, text is fully transparent)."
     )
     parser.add_argument(
-        "--output", "-o", type=str, default="output.mp4",
-        help="Path to save output video (default: 'output.mp4')."
+        "--output", "-o", type=str, default=default_output,
+        help=f"Path to save output video (default: '{default_output}')."
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true",
@@ -277,7 +284,7 @@ def main(args_list: Optional[List[str]] = None):
         gif_path = str(DEMO_GIF) if DEMO_GIF.exists() else def_gif1
         gif2_path = str(DEMO_GIF2) if DEMO_GIF2.exists() else def_gif2
         music_path = str(DEMO_MUSIC) if DEMO_MUSIC.exists() else def_music
-        output_path = "output_demo.mp4" if args.output == "output.mp4" else args.output
+        output_path = "output_demo.mp4" if args.output == get_default_output_filename() else args.output
         text = args.text or "Upar waale ke naam pe is greeb ka kuch help kr do 🙏🙏🙏🙏\n1-2 rupaye hi dedo, plzzzz🙏😭"
     else:
         # Determine image

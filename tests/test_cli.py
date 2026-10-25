@@ -7,6 +7,7 @@ from cli import (
     sort_candidates,
     is_explicit_none,
     parse_args,
+    get_default_output_filename,
     main,
     PREFERRED_IMAGES,
     PREFERRED_GIFS,
@@ -60,11 +61,13 @@ def test_is_explicit_none():
 
 
 def test_cli_parse_args_defaults():
+    import re
     args = parse_args([])
     assert args.duration == 15.0
     assert args.gradient == "sunset"
     assert args.template == "modern_card"
-    assert args.output == "output.mp4"
+    assert args.output == get_default_output_filename()
+    assert re.match(r"^video_\d{4}-\d{2}-\d{2}\.mp4$", args.output)
     assert args.image is None
     assert args.no_image is False
 

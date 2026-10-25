@@ -339,6 +339,45 @@ The project includes unit and integration tests covering gradient generation, PI
 
 ---
 
+## 📱 Daily Instagram Reels Automation
+
+The repository includes a fully automated GitHub Actions workflow (`.github/workflows/daily_instagram_upload.yml`) configured to publish daily Instagram Reels to `@greeb.ki.madad.kro`.
+
+### How It Works:
+1. **Daily Wakeup:** The workflow executes daily at **18:30 IST / 13:00 UTC** (`cron: '0 13 * * *'`).
+2. **Previous-Day Recovery:** Restores any un-uploaded videos from previous failed runs via GitHub Actions cache.
+3. **Date-stamped Generation:** Runs `python cli.py` with zero arguments to generate `video_<YYYY-MM-DD>.mp4`.
+4. **Publish to Instagram:** Runs `python upload_to_instagram.py`:
+   - Scans for all `video_*.mp4` files and sorts them chronologically.
+   - If a video from a previous date exists (failed upload), it uploads that first and deletes it upon success.
+   - Then uploads today's video and deletes it upon confirmed publication.
+5. **Auto Shutdown & Failure Safety:**
+   - Shuts down the runner immediately after completion.
+   - If an upload fails, the video is **not deleted** and is cached for recovery on the next scheduled run.
+
+### GitHub Secrets Configuration:
+Add the following secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
+- `INSTAGRAM_ACCESS_TOKEN`: Meta User Access Token with `instagram_business_content_publish`
+- `INSTAGRAM_ACCOUNT_ID`: Instagram Creator/Business Account ID (`28019782677695839`)
+
+### Running Locally:
+You can also run or test the pipeline locally using your `.env` file:
+```bash
+# 1. Generate video with current date in name
+.venv/bin/python cli.py
+
+# 2. Upload to Instagram (publishes and deletes on success)
+.venv/bin/python upload_to_instagram.py
+
+# Safe dry-run (tests container creation & transcoding without live publishing or file deletion)
+.venv/bin/python upload_to_instagram.py --dry-run
+
+# Check token validity and expiry
+.venv/bin/python upload_to_instagram.py --check-token
+```
+
+---
+
 ## 📄 License
 
 This project is open-source under the [MIT License](LICENSE).
