@@ -63,12 +63,25 @@ def test_upload_to_public_host_mocked(tmp_path):
     dummy_video.write_bytes(b"dummy video data")
 
     mock_resp = MagicMock()
-    mock_resp.read.return_value = b"https://files.catbox.moe/abc123.mp4\n"
+    mock_resp.read.return_value = json.dumps({
+        "success": True,
+        "files": [{"url": "https://d.uguu.se/abc123.mp4"}]
+    }).encode("utf-8")
     mock_resp.__enter__.return_value = mock_resp
 
     with patch("urllib.request.urlopen", return_value=mock_resp):
         url = upload_to_public_host(dummy_video)
-        assert url == "https://files.catbox.moe/abc123.mp4"
+        assert url == "https://d.uguu.se/abc123.mp4"
+
+
+def test_upload_to_public_host_fallback(tmp_path):
+    dummy_video = tmp_path / "video_test.mp4"
+    dummy_video.write_bytes(b"dummy video data")
+
+    with patch("upload_to_instagram.upload_to_uguu", side_effect=RuntimeError("Uguu down")), \
+         patch("upload_to_instagram.upload_to_catbox", return_value="https://files.catbox.moe/fallback.mp4"):
+        url = upload_to_public_host(dummy_video)
+        assert url == "https://files.catbox.moe/fallback.mp4"
 
 
 def test_create_reel_container_mocked():

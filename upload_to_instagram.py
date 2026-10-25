@@ -78,14 +78,49 @@ def get_credentials(
     return token, account_id
 
 
-def upload_to_public_host(video_path: Path, max_retries: int = 3) -> str:
-    """
-    Uploads a video to Catbox (direct streamable HTTPS host).
-    Returns the direct download URL for Instagram Graph API ingestion.
-    """
-    if not video_path.is_file():
-        raise FileNotFoundError(f"Video file not found: {video_path}")
+def upload_to_uguu(video_path: Path, max_retries: int = 3) -> str:
+    """Uploads video to uguu.se (ephemeral direct streamable HTTPS host, CI/CD friendly)."""
+    url = "https://uguu.se/upload"
+    boundary = "----WebKitFormBoundary" + os.urandom(16).hex()
 
+    with open(video_path, "rb") as f:
+        file_bytes = f.read()
+
+    filename = video_path.name
+    body = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="files[]"; filename="{filename}"\r\n'
+        f"Content-Type: video/mp4\r\n\r\n"
+    ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+    headers = {
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "User-Agent": "curl/7.88.1",
+    }
+
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            logging.info("Uploading %s to Uguu (attempt %d/%d)...", filename, attempt, max_retries)
+            req = urllib.request.Request(url, data=body, headers=headers)
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("success") and data.get("files"):
+                    uploaded_url = data["files"][0]["url"]
+                    logging.info("Upload successful via Uguu: %s", uploaded_url)
+                    return uploaded_url
+                raise RuntimeError(f"Unexpected Uguu response: {data}")
+        except Exception as e:
+            last_error = e
+            logging.warning("Uguu upload attempt %d failed: %s", attempt, e)
+            if attempt < max_retries:
+                time.sleep(2 * attempt)
+
+    raise RuntimeError(f"Uguu upload failed: {last_error}")
+
+
+def upload_to_catbox(video_path: Path, max_retries: int = 2) -> str:
+    """Uploads video to catbox.moe as fallback."""
     url = "https://catbox.moe/user/api.php"
     boundary = "----WebKitFormBoundary" + os.urandom(16).hex()
 
@@ -109,21 +144,36 @@ def upload_to_public_host(video_path: Path, max_retries: int = 3) -> str:
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
-            logging.info("Uploading %s to temporary host (attempt %d/%d)...", filename, attempt, max_retries)
+            logging.info("Uploading %s to Catbox fallback (attempt %d/%d)...", filename, attempt, max_retries)
             req = urllib.request.Request(url, data=body, headers=headers)
             with urllib.request.urlopen(req, timeout=60) as resp:
                 resp_text = resp.read().decode("utf-8").strip()
                 if resp_text.startswith("http://") or resp_text.startswith("https://"):
-                    logging.info("Upload successful: %s", resp_text)
+                    logging.info("Upload successful via Catbox: %s", resp_text)
                     return resp_text
-                raise RuntimeError(f"Unexpected upload response: {resp_text}")
+                raise RuntimeError(f"Unexpected Catbox response: {resp_text}")
         except Exception as e:
             last_error = e
-            logging.warning("Upload attempt %d failed: %s", attempt, e)
+            logging.warning("Catbox upload attempt %d failed: %s", attempt, e)
             if attempt < max_retries:
-                time.sleep(3 * attempt)
+                time.sleep(2 * attempt)
 
-    raise RuntimeError(f"Failed to upload {video_path} after {max_retries} attempts: {last_error}")
+    raise RuntimeError(f"Catbox upload failed: {last_error}")
+
+
+def upload_to_public_host(video_path: Path) -> str:
+    """
+    Uploads a video to a temporary direct streamable HTTPS host.
+    Tries Uguu first (CI/CD datacenter friendly), falls back to Catbox.
+    """
+    if not video_path.is_file():
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    try:
+        return upload_to_uguu(video_path)
+    except Exception as e:
+        logging.warning("Primary host (Uguu) failed: %s. Trying fallback host...", e)
+        return upload_to_catbox(video_path)
 
 
 def create_reel_container(
