@@ -433,6 +433,8 @@ def main(args_list: Optional[List[str]] = None) -> int:
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(message)s")
 
+    logging.info("🚀 Starting Instagram Reel Automation v1.2 (Host: Uguu with Catbox fallback)")
+
     try:
         token, account_id = get_credentials(args.token, args.account_id)
     except ValueError as e:
