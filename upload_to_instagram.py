@@ -67,8 +67,12 @@ def get_credentials(
 ) -> Tuple[str, str]:
     """Retrieves access token and account ID from CLI or environment."""
     load_env_file()
-    token = cli_token or os.environ.get("INSTAGRAM_ACCESS_TOKEN", "").strip()
-    account_id = cli_account_id or os.environ.get("INSTAGRAM_ACCOUNT_ID", "").strip()
+    token = cli_token or os.environ.get("INSTAGRAM_ACCESS_TOKEN", "")
+    account_id = cli_account_id or os.environ.get("INSTAGRAM_ACCOUNT_ID", "")
+
+    # Clean whitespace, newlines, and any surrounding quotes
+    token = token.strip().strip("\"'").strip()
+    account_id = account_id.strip().strip("\"'").strip()
 
     if not token:
         raise ValueError("Missing Instagram Access Token. Set INSTAGRAM_ACCESS_TOKEN or pass --token.")
@@ -76,6 +80,23 @@ def get_credentials(
         raise ValueError("Missing Instagram Account ID. Set INSTAGRAM_ACCOUNT_ID or pass --account-id.")
 
     return token, account_id
+
+
+def verify_token_health(access_token: str, account_id: str) -> None:
+    """Verifies token against Meta /me endpoint to provide clear diagnosis if invalid."""
+    url = f"https://graph.instagram.com/v21.0/me?fields=id,username&access_token={access_token}"
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            logging.info("✅ Meta credentials verified: @%s (Account ID: %s)",
+                         data.get("username"), data.get("id"))
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8")
+        raise RuntimeError(
+            f"Instagram Access Token rejected by Meta: HTTP {e.code} - {err_body}. "
+            "Please check that the secret value was pasted cleanly in GitHub Secrets without missing characters."
+        )
 
 
 def upload_to_uguu(video_path: Path, max_retries: int = 3) -> str:
@@ -441,9 +462,20 @@ def main(args_list: Optional[List[str]] = None) -> int:
         logging.error("%s", e)
         return 1
 
+    prefix = token[:6] if len(token) >= 6 else token
+    suffix = token[-4:] if len(token) >= 4 else ""
+    logging.info("Credentials check: Account ID: %s | Token length: %d chars (prefix: %s... suffix: ...%s)",
+                 account_id, len(token), prefix, suffix)
+
     if args.check_token:
         check_token_status(token)
         return 0
+
+    try:
+        verify_token_health(token, account_id)
+    except Exception as e:
+        logging.error("%s", e)
+        return 1
 
     caption = args.caption or os.environ.get("INSTAGRAM_CAPTION") or DEFAULT_CAPTION
 
